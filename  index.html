@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mines21 — Real Mines</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; }
+  body {
+    background: radial-gradient(circle at top, #1e1b3a 0%, #0f0d1f 100%);
+    color: #fff; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 10px;
+  }
+
+  /* ==================== ЭКРАН ВХОДА ==================== */
+  .auth-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    background: radial-gradient(circle at top, #1e1b3a 0%, #0f0d1f 100%);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .auth-screen.hidden { display: none; }
+  .auth-box {
+    width: 100%; max-width: 380px;
+    background: rgba(37, 37, 64, 0.95);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 22px; padding: 32px 26px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+    animation: popIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.85); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .auth-logo {
+    font-size: 32px; font-weight: 900; text-align: center;
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .auth-subtitle {
+    text-align: center; color: #888; font-size: 13px;
+    margin-bottom: 26px; letter-spacing: 1px;
+  }
+  .auth-tabs {
+    display: flex; gap: 6px; background: #1a1a30;
+    padding: 5px; border-radius: 12px; margin-bottom: 20px;
+  }
+  .auth-tab {
+    flex: 1; padding: 10px; text-align: center;
+    border-radius: 9px; cursor: pointer; font-size: 14px;
+    font-weight: 700; color: #888; transition: all 0.2s;
+  }
+  .auth-tab.active {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
+  }
+  .auth-field { margin-bottom: 14px; }
+  .auth-field label {
+    display: block; font-size: 12px; color: #aaa;
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .auth-field input {
+    width: 100%; background: #1a1a30;
+    border: 2px solid #3a3a5c; border-radius: 12px;
+    padding: 13px 15px; color: #fff; font-size: 15px;
+    font-weight: 600; outline: none; transition: border 0.2s;
+  }
+  .auth-field input:focus { border-color: #8b5cf6; }
+  .auth-btn {
+    width: 100%; background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    border: none; border-radius: 14px; padding: 15px;
+    color: #fff; font-size: 16px; font-weight: 800;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+    margin-top: 8px; letter-spacing: 0.5px;
+  }
+  .auth-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(139, 92, 246, 0.7); }
+  .auth-btn:active { transform: translateY(0); }
+  .auth-error {
+    color: #f87171; font-size: 13px; text-align: center;
+    margin-top: 12px; min-height: 18px; font-weight: 600;
+  }
+  .auth-info {
+    color: #888; font-size: 12px; text-align: center;
+    margin-top: 16px; line-height: 1.5;
+  }
+
+  /* ==================== ИГРА ==================== */
+  .header {
+    width: 100%; max-width: 520px; display: flex;
+    justify-content: space-between; align-items: center;
+    padding: 12px 0; gap: 10px;
+  }
+  .logo {
+    font-size: 26px; font-weight: 900;
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 1px; flex-shrink: 0;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .sound-btn, .user-btn {
+    background: #1a1a30; border: 2px solid #3a3a5c;
+    border-radius: 12px; width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; transition: all 0.2s; color: #fff;
+  }
+  .sound-btn:hover, .user-btn:hover { border-color: #8b5cf6; }
+  .sound-btn.muted { opacity: 0.5; }
+  .balance {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    padding: 10px 16px; border-radius: 14px; font-weight: 800;
+    display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5);
+    font-size: 16px; transition: transform 0.2s;
+  }
+  .balance.bump { animation: bump 0.35s ease; }
+  @keyframes bump {
+    0% { transform: scale(1); } 50% { transform: scale(1.12); } 100% { transform: scale(1); }
+  }
+  .balance .coin { font-size: 18px; }
+  .container {
+    width: 100%; max-width: 520px;
+    background: rgba(37, 37, 64, 0.85);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 22px; padding: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 10px; margin-bottom: 22px;
+  }
+  .cell {
+    aspect-ratio: 1;
+    background: linear-gradient(145deg, #3a3a5c, #2c2c48);
+    border-radius: 14px; display: flex; align-items: center;
+    justify-content: center; font-size: 30px; cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(139, 92, 246, 0.15);
+    position: relative; overflow: hidden;
+  }
+  .cell:hover:not(.opened) {
+    border-color: rgba(139, 92, 246, 0.6);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+  }
+  .cell.opened { cursor: default; transform: none !important; }
+  .cell.opened.gem {
+    background: linear-gradient(145deg, #10b981, #047857);
+    border-color: #34d399;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5), inset 0 0 20px rgba(255,255,255,0.15);
+  }
+  .cell.opened.bomb {
+    background: linear-gradient(145deg, #dc2626, #7f1d1d);
+    border-color: #f87171;
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.8), inset 0 0 20px rgba(0,0,0,0.4);
+    animation: shake 0.5s;
+  }
+  .cell.revealed-bomb {
+    background: linear-gradient(145deg, #7f1d1d, #450a0a);
+    border-color: #7f1d1d; opacity: 0.85; font-size: 26px;
+    animation: revealMine 0.4s ease;
+  }
+  .cell.revealed-bomb::after {
+    content: ''; position: absolute; inset: -4px; border-radius: 16px;
+    border: 2px solid #ef4444; opacity: 0.6;
+    animation: pulseRed 1.2s infinite;
+  }
+  @keyframes revealMine {
+    0% { transform: scale(0.5) rotate(-20deg); opacity: 0; }
+    60% { transform: scale(1.15) rotate(5deg); }
+    100% { transform: scale(1) rotate(0); opacity: 0.85; }
+  }
+  @keyframes pulseRed {
+    0%, 100% { box-shadow: 0 0 0 rgba(239, 68, 68, 0.6); }
+    50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px) rotate(-3deg); }
+    40% { transform: translateX(6px) rotate(3deg); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  @keyframes pop {
+    0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); }
+  }
+  .cell.opened { animation: pop 0.3s ease; }
+
+  .stats { display: flex; gap: 10px; margin-bottom: 16px; }
+  .stat-box {
+    flex: 1; background: #1f1f38; border-radius: 14px; padding: 12px;
+    text-align: center; border: 2px solid #3a3a5c; transition: all 0.25s;
+  }
+  .stat-box.active {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
+    background: #262646;
+  }
+  .stat-box .label {
+    font-size: 11px; color: #aaa; margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .stat-box .value { font-size: 20px; font-weight: 800; color: #a78bfa; }
+  .stat-box .sub { font-size: 11px; color: #777; margin-top: 3px; }
+  .input-group { margin-bottom: 14px; }
+  .input-group label {
+    display: block; font-size: 12px; color: #aaa; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .bet-row { display: flex; gap: 8px; }
+  .bet-input {
+    flex: 1; min-width: 0; background: #1a1a30;
+    border: 2px solid #3a3a5c; border-radius: 12px;
+    padding: 12px 14px; color: #fff; font-size: 16px;
+    font-weight: bold; outline: none; transition: border 0.2s;
+  }
+  .bet-input:focus { border-color: #8b5cf6; }
+  .quick-btn {
+    background: #1a1a30; border: 2px solid #3a3a5c; border-radius: 12px;
+    padding: 0 12px; color: #aaa; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .quick-btn:hover {
+    border-color: #8b5cf6; color: #fff; background: #262646;
+  }
+  .mines-row { display: flex; gap: 8px; align-items: stretch; }
+  .mines-selector {
+    flex: 1; display: flex; align-items: center; justify-content: space-between;
+    background: #1a1a30; border: 2px solid #3a3a5c;
+    border-radius: 12px; padding: 8px 10px;
+  }
+  .mines-selector button {
+    background: #3a3a5c; border: none; color: #fff;
+    width: 32px; height: 32px; border-radius: 9px;
+    font-size: 18px; font-weight: bold; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .mines-selector button:hover { background: #8b5cf6; }
+  .mines-selector .count {
+    font-size: 18px; font-weight: 800;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .play-btn {
+    flex: 1.5; background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    border: none; border-radius: 14px; padding: 14px;
+    color: #fff; font-size: 17px; font-weight: 800;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+    letter-spacing: 0.5px;
+  }
+  .play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(139, 92, 246, 0.7);
+  }
+  .play-btn:active { transform: translateY(0); }
+  .play-btn.cashout {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+  }
+  .play-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .message {
+    text-align: center; margin-top: 16px; font-size: 14px;
+    min-height: 22px; font-weight: 700; transition: all 0.3s;
+  }
+  .message.win { color: #34d399; text-shadow: 0 0 15px rgba(52, 211, 153, 0.5); }
+  .message.lose { color: #f87171; text-shadow: 0 0 15px rgba(248, 113, 113, 0.5); }
+  .message.info { color: #a78bfa; }
+
+  /* Таймер до пополнения */
+  .refill-banner {
+    display: none;
+    margin-top: 12px; padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 12px; text-align: center;
+    font-size: 14px; color: #f87171; font-weight: 700;
+  }
+  .refill-banner.active { display: block; animation: fadeIn 0.3s; }
+  .refill-banner .timer {
+    font-size: 20px; color: #fff; font-weight: 900;
+    display: block; margin-top: 4px; letter-spacing: 2px;
+  }
+
+  /* Профиль-модалка */
+  .profile-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center;
+    z-index: 500; backdrop-filter: blur(5px); padding: 20px;
+  }
+  .profile-overlay.active { display: flex; animation: fadeIn 0.25s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .profile-box {
+    background: linear-gradient(145deg, #2a2a4a, #1a1a30);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 20px; padding: 26px;
+    max-width: 340px; width: 100%; text-align: center;
+    animation: popIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .profile-avatar {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; margin: 0 auto 14px;
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.6);
+  }
+  .profile-name { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+  .profile-sub { font-size: 12px; color: #888; margin-bottom: 20px; }
+  .profile-stat {
+    display: flex; justify-content: space-between;
+    padding: 10px 14px; background: #1a1a30; border-radius: 10px;
+    margin-bottom: 8px; font-size: 14px;
+  }
+  .profile-stat span:first-child { color: #888; }
+  .profile-stat span:last-child { color: #fff; font-weight: 800; }
+  .profile-btn {
+    width: 100%; margin-top: 10px; padding: 12px;
+    border: none; border-radius: 12px; font-size: 14px;
+    font-weight: 800; cursor: pointer; transition: all 0.2s;
+  }
+  .profile-btn.logout {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #fff;
+  }
+  .profile-btn.close {
+    background: #3a3a5c; color: #fff;
+  }
+  .profile-btn:hover { transform: scale(1.02); }
+</style>
+</head>
+<body>
+
+<!-- ========== ЭКРАН ВХОДА ========== -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">MINES21</div>
+    <div class="auth-subtitle">РЕАЛЬНЫЕ МИНЫ · РЕАЛЬНЫЙ АЗАРТ</div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Вход</div>
+      <div class="auth-tab" id="tab-register" onclick="switchTab('register')">Регистрация</div>
+    </div>
+
+    <div class="auth-field">
+      <label>Ник</label>
+      <input type="text" id="auth-nick" placeholder="Введи ник" maxlength="20" autocomplete="off">
+    </div>
+    <div class="auth-field">
+      <label>Пароль</label>
+      <input type="password" id="auth-pass" placeholder="Введи пароль" maxlength="40" autocomplete="off">
+    </div>
+
+    <button class="auth-btn" id="auth-submit" onclick="handleAuth()">Войти</button>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-info">Данные хранятся локально в этом браузере</div>
+  </div>
+</div>
+
+<!-- ========== ИГРА ========== -->
+<div class="header">
+  <div class="logo">MINES21</div>
+  <div class="header-right">
+    <div class="sound-btn" id="sound-btn" onclick="toggleSound()" title="Звук">🔊</div>
+    <div class="user-btn" onclick="openProfile()" title="Профиль">👤</div>
+    <div class="balance" id="balance-box">
+      <span class="coin">💰</span>
+      <span id="balance">1000</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="grid" id="grid"></div>
+
+  <div class="stats">
+    <div class="stat-box" id="stat-shah1">
+      <div class="label">Шаг 1</div>
+      <div class="value" id="mult-now">x1.00</div>
+      <div class="sub" id="next-mult">след: x1.14</div>
+    </div>
+    <div class="stat-box" id="stat-shah2">
+      <div class="label">Шаг 2</div>
+      <div class="value" id="win-amount">+0</div>
+      <div class="sub" id="next-win">след: +13</div>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <label>Ставка</label>
+    <div class="bet-row">
+      <input type="number" class="bet-input" id="bet" value="10" min="1" step="1">
+      <button class="quick-btn" onclick="setBet('min')">Min</button>
+      <button class="quick-btn" onclick="setBet('x2')">x2</button>
+      <button class="quick-btn" onclick="setBet('half')">½</button>
+      <button class="quick-btn" onclick="setBet('max')">Max</button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <label>Количество мин</label>
+    <div class="mines-row">
+      <div class="mines-selector">
+        <button onclick="changeMines(-1)">‹</button>
+        <span class="count">💣 <span id="mines-count">3</span></span>
+        <button onclick="changeMines(1)">›</button>
+      </div>
+      <button class="play-btn" id="play-btn" onclick="handlePlay()">Играть</button>
+    </div>
+  </div>
+
+  <div class="message" id="message"></div>
+  <div class="refill-banner" id="refill-banner">
+    💸 Баланс обнулён. Пополнение через:
+    <span class="timer" id="refill-timer">03:00</span>
+  </div>
+</div>
+
+<!-- ========== ПРОФИЛЬ ========== -->
+<div class="profile-overlay" id="profile-overlay">
+  <div class="profile-box">
+    <div class="profile-avatar">👤</div>
+    <div class="profile-name" id="profile-name">Игрок</div>
+    <div class="profile-sub">Локальный аккаунт</div>
+
+    <div class="profile-stat"><span>💰 Баланс</span><span id="profile-balance">1000</span></div>
+    <div class="profile-stat"><span>🎮 Раундов</span><span id="profile-rounds">0</span></div>
+    <div class="profile-stat"><span>🏆 Побед</span><span id="profile-wins">0</span></div>
+
+    <button class="profile-btn logout" onclick="logout()">Выйти из аккаунта</button>
+    <button class="profile-btn close" onclick="closeProfile()">Закрыть</button>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // АККАУНТЫ (localStorage)
+  // ============================================================
+  const STORAGE_USERS = 'mines21_users_v1';
+  const STORAGE_CURRENT = 'mines21_current_v1';
+  const START_BALANCE = 1000;
+  const REFILL_TIME_MS = 3 * 60 * 1000; // 3 минуты
+
+  let currentUser = null;    // { nick, balance, rounds, wins, lastRefillAt }
+  let refillTimerInterval = null;
+
+  function loadUsers() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_USERS) || '{}'); }
+    catch (e) { return {}; }
+  }
+  function saveUsers(users) {
+    localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+  }
+  function saveCurrent() {
+    if (currentUser) {
+      const users = loadUsers();
+      users[currentUser.nick] = currentUser;
+      saveUsers(users);
+      localStorage.setItem(STORAGE_CURRENT, currentUser.nick);
+    }
+  }
+  function loadCurrent() {
+    const nick = localStorage.getItem(STORAGE_CURRENT);
+    if (!nick) return null;
+    const users = loadUsers();
+    return users[nick] || null;
+  }
+  function clearCurrent() {
+    localStorage.removeItem(STORAGE_CURRENT);
+  }
+
+  // ==== ЭКРАН ВХОДА ====
+  let authMode = 'login';
+
+  function switchTab(mode) {
+    authMode = mode;
+    document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+    document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+    document.getElementById('auth-submit').textContent = mode === 'login' ? 'Войти' : 'Зарегистрироваться';
+    document.getElementById('auth-error').textContent = '';
+  }
+
+  function handleAuth() {
+    const nick = document.getElementById('auth-nick').value.trim();
+    const pass = document.getElementById('auth-pass').value.trim();
+    const errEl = document.getElementById('auth-error');
+
+    if (nick.length < 3) { errEl.textContent = 'Ник минимум 3 символа'; return; }
+    if (pass.length < 3) { errEl.textContent = 'Пароль минимум 3 символа'; return; }
+
+    const users = loadUsers();
+    const existing = users[nick];
+
+    if (authMode === 'register') {
+      if (existing) { errEl.textContent = 'Такой ник уже занят'; return; }
+      // Создаём нового юзера
+      users[nick] = {
+        nick,
+        pass,                  // (в реале — хэш, но для локальной игры ок)
+        balance: START_BALANCE,
+        rounds: 0,
+        wins: 0,
+        lastRefillAt: 0
+      };
+      saveUsers(users);
+      loginAs(nick);
+    } else {
+      // login
+      if (!existing) { errEl.textContent = 'Игрок не найден'; return; }
+      if (existing.pass !== pass) { errEl.textContent = 'Неверный пароль'; return; }
+      loginAs(nick);
+    }
+  }
+
+  function loginAs(nick) {
+    const users = loadUsers();
+    currentUser = users[nick];
+    localStorage.setItem(STORAGE_CURRENT, nick);
+    document.getElementById('auth-screen').classList.add('hidden');
+    refreshUI();
+    startRefillWatcher();
+  }
+
+  function logout() {
+    saveCurrent();
+    clearCurrent();
+    currentUser = null;
+    closeProfile();
+    if (refillTimerInterval) clearInterval(refillTimerInterval);
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('auth-nick').value = '';
+    document.getElementById('auth-pass').value = '';
+    document.getElementById('auth-error').textContent = '';
+  }
+
+  // ==== АВТОПОПОЛНЕНИЕ ====
+  function checkRefill() {
+    if (!currentUser) return;
+    if (currentUser.balance > 0) {
+      // баланс не 0 — сбрасываем таймер
+      currentUser.lastRefillAt = 0;
+      return;
+    }
+    // баланс 0 — проверяем, надо ли пополнить
+    const now = Date.now();
+    if (!currentUser.lastRefillAt) {
+      // только что обнулился
+      currentUser.lastRefillAt = now;
+      saveCurrent();
+    } else {
+      const elapsed = now - currentUser.lastRefillAt;
+      if (elapsed >= REFILL_TIME_MS) {
+        currentUser.balance = START_BALANCE;
+        currentUser.lastRefillAt = 0;
+        saveCurrent();
+        updateBalance(true);
+        showMessage('💰 Баланс пополнен на ' + START_BALANCE + '!', 'win');
+        sfxWin();
+      }
+    }
+  }
+
+  function startRefillWatcher() {
+    if (refillTimerInterval) clearInterval(refillTimerInterval);
+    refillTimerInterval = setInterval(() => {
+      checkRefill();
+      updateRefillBanner();
+    }, 500);
+  }
+
+  function updateRefillBanner() {
+    const banner = document.getElementById('refill-banner');
+    const timerEl = document.getElementById('refill-timer');
+
+    if (!currentUser || currentUser.balance > 0) {
+      banner.classList.remove('active');
+      return;
+    }
+    if (!currentUser.lastRefillAt) {
+      currentUser.lastRefillAt = Date.now();
+      saveCurrent();
+    }
+    const elapsed = Date.now() - currentUser.lastRefillAt;
+    const left = Math.max(0, REFILL_TIME_MS - elapsed);
+
+    if (left <= 0) {
+      banner.classList.remove('active');
+      return;
+    }
+    banner.classList.add('active');
+    const totalSec = Math.floor(left / 1000);
+    const m = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const s = String(totalSec % 60).padStart(2, '0');
+    timerEl.textContent = `${m}:${s}`;
+  }
+
+  // ==== ПРОФИЛЬ ====
+  function openProfile() {
+    if (!currentUser) return;
+    document.getElementById('profile-name').textContent = currentUser.nick;
+    document.getElementById('profile-balance').textContent = fmt(currentUser.balance);
+    document.getElementById('profile-rounds').textContent = currentUser.rounds;
+    document.getElementById('profile-wins').textContent = currentUser.wins;
+    document.getElementById('profile-overlay').classList.add('active');
+  }
+  function closeProfile() {
+    document.getElementById('profile-overlay').classList.remove('active');
+  }
+
+  // ============================================================
+  // ЗВУК
+  // ============================================================
+  let soundEnabled = true;
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) {}
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function playTone({ freq = 440, type = 'sine', duration = 0.15, volume = 0.3, delay = 0, slideTo = null }) {
+    if (!soundEnabled || !audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, audioCtx.currentTime + delay + duration);
+    gain.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + delay + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + delay);
+    osc.stop(audioCtx.currentTime + delay + duration + 0.05);
+  }
+
+  function playNoise({ duration = 0.5, volume = 0.4, filterFreq = 1000, delay = 0 }) {
+    if (!soundEnabled || !audioCtx) return;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(filterFreq, audioCtx.currentTime + delay);
+    filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + delay + duration);
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(volume, audioCtx.currentTime + delay);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(audioCtx.currentTime + delay);
+    noise.stop(audioCtx.currentTime + delay + duration);
+  }
+
+  function sfxClick()  { playTone({ freq: 600, type: 'square', duration: 0.05, volume: 0.15 }); }
+  function sfxGem()    { playTone({ freq: 880, type: 'sine', duration: 0.12, volume: 0.25 }); playTone({ freq: 1320, type: 'sine', duration: 0.18, volume: 0.2, delay: 0.06 }); }
+  function sfxBomb()   { playNoise({ duration: 0.6, volume: 0.5, filterFreq: 2000 }); playTone({ freq: 80, type: 'sawtooth', duration: 0.5, volume: 0.35, slideTo: 30 }); playTone({ freq: 150, type: 'square', duration: 0.3, volume: 0.2, delay: 0.05, slideTo: 50 }); }
+  function sfxWin()    { [523, 659, 784, 1047].forEach((f, i) => playTone({ freq: f, type: 'triangle', duration: 0.3, volume: 0.22, delay: i * 0.09 })); playTone({ freq: 1568, type: 'sine', duration: 0.4, volume: 0.15, delay: 0.36 }); }
+  function sfxLose()   { playTone({ freq: 400, type: 'sawtooth', duration: 0.2, volume: 0.2, slideTo: 200 }); playTone({ freq: 200, type: 'sawtooth', duration: 0.3, volume: 0.2, delay: 0.15, slideTo: 100 }); }
+  function sfxSwitch() { playTone({ freq: 700, type: 'square', duration: 0.04, volume: 0.1 }); }
+  function sfxStart()  { playTone({ freq: 300, type: 'sine', duration: 0.1, volume: 0.2, slideTo: 600 }); }
+  function sfxReveal() { playTone({ freq: 500, type: 'sine', duration: 0.08, volume: 0.12, slideTo: 700 }); }
+
+  function toggleSound() {
+    soundEnabled = !soundEnabled;
+    const btn = document.getElementById('sound-btn');
+    btn.textContent = soundEnabled ? '🔊' : '🔇';
+    btn.classList.toggle('muted', !soundEnabled);
+    if (soundEnabled) { initAudio(); sfxSwitch(); }
+  }
+
+  // ============================================================
+  // ФОРМАТ
+  // ============================================================
+  function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
+  function fmtSigned(n) {
+    const v = Math.round(n);
+    return (v > 0 ? '+' : '') + v.toLocaleString('ru-RU');
+  }
+
+  // ============================================================
+  // ИГРА
+  // ============================================================
+  const TOTAL_CELLS = 25;
+  const MINE_ICON = '💣';
+  let minesCount = 3;
+  let bet = 10;
+  let gameActive = false;
+  let cells = [];
+  let opened = [];
+  let openedSafe = 0;
+  let firstClickDone = false;
+
+  const gridEl = document.getElementById('grid');
+  const balanceEl = document.getElementById('balance');
+  const balanceBoxEl = document.getElementById('balance-box');
+  const betEl = document.getElementById('bet');
+  const minesCountEl = document.getElementById('mines-count');
+  const playBtn = document.getElementById('play-btn');
+  const messageEl = document.getElementById('message');
+  const multNowEl = document.getElementById('mult-now');
+  const nextMultEl = document.getElementById('next-mult');
+  const winAmountEl = document.getElementById('win-amount');
+  const nextWinEl = document.getElementById('next-win');
+
+  function createGrid() {
+    gridEl.innerHTML = '';
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.index = i;
+      cell.onclick = () => openCell(i);
+      gridEl.appendChild(cell);
+    }
+  }
+
+  function secureRandomInt(max) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0] % max;
+  }
+
+  function getMultiplier(safeOpened, mines) {
+    if (safeOpened === 0) return 1;
+    const total = TOTAL_CELLS;
+    let mult = 1;
+    for (let i = 0; i < safeOpened; i++) mult *= (total - i) / (total - mines - i);
+    return mult * 0.97;
+  }
+
+  function updateStats() {
+    const currentMult = openedSafe > 0 ? getMultiplier(openedSafe, minesCount) : 1;
+    const nextMult = getMultiplier(openedSafe + 1, minesCount);
+    multNowEl.textContent = 'x' + currentMult.toFixed(2);
+    nextMultEl.textContent = 'след: x' + nextMult.toFixed(2);
+    winAmountEl.textContent = fmtSigned(bet * currentMult);
+    nextWinEl.textContent = 'след: ' + fmtSigned(bet * nextMult);
+    document.getElementById('stat-shah1').classList.toggle('active', openedSafe > 0);
+    document.getElementById('stat-shah2').classList.toggle('active', openedSafe > 0);
+  }
+
+  function changeMines(delta) {
+    if (gameActive) return;
+    minesCount = Math.max(1, Math.min(24, minesCount + delta));
+    minesCountEl.textContent = minesCount;
+    sfxSwitch();
+    updateStats();
+  }
+
+  function setBet(type) {
+    if (gameActive || !currentUser) return;
+    if (type === 'min') bet = 1;
+    if (type === 'x2') bet = Math.min(currentUser.balance, bet * 2);
+    if (type === 'half') bet = Math.max(1, Math.floor(bet / 2));
+    if (type === 'max') bet = currentUser.balance;
+    betEl.value = bet;
+    sfxSwitch();
+    updateStats();
+  }
+
+  function placeMines(excludeIndex = -1) {
+    cells = new Array(TOTAL_CELLS).fill(false);
+    let placed = 0, attempts = 0;
+    while (placed < minesCount && attempts < 1000) {
+      attempts++;
+      const r = secureRandomInt(TOTAL_CELLS);
+      if (r === excludeIndex) continue;
+      if (!cells[r]) { cells[r] = true; placed++; }
+    }
+  }
+
+  function startGame() {
+    if (!currentUser) return;
+    initAudio();
+    bet = parseInt(betEl.value) || 1;
+
+    if (bet < 1) { showMessage('Минимальная ставка 1', 'lose'); return; }
+    if (bet > currentUser.balance) { showMessage('Недостаточно средств', 'lose'); return; }
+
+    currentUser.balance -= bet;
+    currentUser.rounds++;
+    saveCurrent();
+    updateBalance();
+
+    gameActive = true;
+    openedSafe = 0;
+    opened = new Array(TOTAL_CELLS).fill(false);
+    firstClickDone = false;
+    placeMines(-1);
+
+    document.querySelectorAll('.cell').forEach(c => { c.className = 'cell'; c.innerHTML = ''; });
+    playBtn.textContent = 'Забрать';
+    playBtn.classList.add('cashout');
+    showMessage('Игра началась! Открывай ячейки', 'info');
+    sfxStart();
+    updateStats();
+  }
+
+  function openCell(index) {
+    if (!gameActive || !currentUser || opened[index]) return;
+    initAudio();
+
+    // Первая ячейка всегда безопасна
+    if (!firstClickDone) {
+      firstClickDone = true;
+      if (cells[index]) {
+        let newPos = -1, attempts = 0;
+        while (newPos === -1 && attempts < 1000) {
+          attempts++;
+          const r = secureRandomInt(TOTAL_CELLS);
+          if (r !== index && !cells[r]) newPos = r;
+        }
+        if (newPos !== -1) { cells[index] = false; cells[newPos] = true; }
+      }
+    }
+
+    opened[index] = true;
+    const cellEl = document.querySelector(`.cell[data-index="${index}"]`);
+
+    if (cells[index]) {
+      cellEl.classList.add('opened', 'bomb');
+      cellEl.innerHTML = MINE_ICON;
+      sfxBomb();
+      endGame(false);
+    } else {
+      cellEl.classList.add('opened', 'gem');
+      cellEl.innerHTML = '💎';
+      openedSafe++;
+      sfxGem();
+      updateStats();
+      if (openedSafe === TOTAL_CELLS - minesCount) endGame(true);
+    }
+  }
+
+  function revealAllMines() {
+    let revealed = 0;
+    cells.forEach((isMine, i) => {
+      if (isMine && !opened[i]) {
+        const c = document.querySelector(`.cell[data-index="${i}"]`);
+        setTimeout(() => {
+          c.classList.add('opened', 'revealed-bomb');
+          c.innerHTML = MINE_ICON;
+          sfxReveal();
+        }, revealed * 60);
+        revealed++;
+      }
+    });
+  }
+
+  function endGame(won) {
+    gameActive = false;
+
+    if (won) {
+      const mult = getMultiplier(openedSafe, minesCount);
+      const win = Math.round(bet * mult);
+      currentUser.balance += win;
+      currentUser.wins++;
+      saveCurrent();
+      updateBalance(true);
+      showMessage(`🎉 Выигрыш: +${fmt(win)} (x${mult.toFixed(2)})`, 'win');
+      sfxWin();
+      revealAllMines();
+    } else {
+      revealAllMines();
+      showMessage(`💥 Бомба! Потеряно: ${fmt(bet)}`, 'lose');
+      setTimeout(() => sfxLose(), 400);
+    }
+
+    // Проверяем обнуление
+    checkRefill();
+
+    playBtn.textContent = 'Играть';
+    playBtn.classList.remove('cashout');
+    updateStats();
+  }
+
+  function cashout() {
+    if (openedSafe === 0) { showMessage('Открой хотя бы одну ячейку!', 'lose'); return; }
+    endGame(true);
+  }
+
+  function handlePlay() {
+    if (gameActive) cashout();
+    else startGame();
+  }
+
+  function showMessage(text, type) {
+    messageEl.textContent = text;
+    messageEl.className = 'message ' + type;
+  }
+
+  function updateBalance(bump = false) {
+    if (!currentUser) return;
+    balanceEl.textContent = fmt(currentUser.balance);
+    if (bump) {
+      balanceBoxEl.classList.remove('bump');
+      void balanceBoxEl.offsetWidth;
+      balanceBoxEl.classList.add('bump');
+    }
+  }
+
+  function refreshUI() {
+    if (!currentUser) return;
+    updateBalance();
+    updateStats();
+    updateRefillBanner();
+  }
+
+  // ============================================================
+  // СТАРТ
+  // ============================================================
+  createGrid();
+  updateStats();
+
+  // Автологин если уже входил
+  const saved = loadCurrent();
+  if (saved) {
+    currentUser = saved;
+    document.getElementById('auth-screen').classList.add('hidden');
+    refreshUI();
+    startRefillWatcher();
+    checkRefill();
+  }
+
+  betEl.addEventListener('input', () => { betEl.value = betEl.value.replace(/[^\d]/g, ''); });
+  document.body.addEventListener('click', initAudio, { once: true });
+  document.body.addEventListener('touchstart', initAudio, { once: true });
+
+  // Enter в полях авторизации
+  document.getElementById('auth-pass').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleAuth();
+  });
+  document.getElementById('auth-nick').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('auth-pass').focus();
+  });
+</script>
+
+</body>
+</html>
